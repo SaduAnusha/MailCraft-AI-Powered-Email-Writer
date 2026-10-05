@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MailCraft - AI Email Writer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f2f5f9;
+    --card: #ffffff;
+    --ink: #12263a;
+    --muted: #5b6b7c;
+    --line: #d5dde6;
+    --accent: #0e6f7a;
+    --accent-dark: #0a565f;
+    --stripe-red: #d8473c;
+    --stripe-blue: #2f5fa8;
+    --error: #a82b22;
+    --head: "Bricolage Grotesque", "Segoe UI", sans-serif;
+    --body: "Instrument Sans", "Segoe UI", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 36px 20px 56px; }
+  header h1 {
+    font-family: var(--head);
+    font-size: clamp(2rem, 4vw, 2.9rem);
+    line-height: 1.1;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  header p { margin: 0 0 28px; color: var(--muted); max-width: 52ch; }
+
+  .layout { display: grid; grid-template-columns: 1fr 1.1fr; gap: 24px; align-items: start; }
+  @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  label { display: block; font-weight: 600; font-size: 0.92rem; margin: 0 0 6px; }
+  .field { margin-bottom: 16px; }
+  .hint { font-weight: 400; color: var(--muted); }
+  textarea, input, select {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  textarea { min-height: 120px; resize: vertical; }
+  textarea:focus, input:focus, select:focus, button:focus-visible {
+    outline: 3px solid rgba(14, 111, 122, 0.35);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .row, .row3 { grid-template-columns: 1fr; } }
+
+  button {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 11px 18px;
+    cursor: pointer;
+    border: 1px solid var(--accent);
+  }
+  .primary { background: var(--accent); color: #fff; width: 100%; font-size: 1.02rem; }
+  .primary:hover { background: var(--accent-dark); }
+  .primary:disabled { opacity: 0.65; cursor: wait; }
+  .ghost { background: #fff; color: var(--accent-dark); }
+  .ghost:hover { background: #eaf4f5; }
+
+  .result { position: sticky; top: 16px; }
+  .envelope {
+    background: var(--card);
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    padding: 26px 22px 22px;
+    position: relative;
+    min-height: 330px;
+  }
+  .envelope::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 10px;
+    border-radius: 10px 10px 0 0;
+    background: repeating-linear-gradient(
+      135deg,
+      var(--stripe-red) 0 14px, #fff 14px 22px,
+      var(--stripe-blue) 22px 36px, #fff 36px 44px);
+  }
+  .subject-label { font-size: 0.85rem; color: var(--muted); margin: 0 0 2px; }
+  .subject { font-family: var(--head); font-size: 1.25rem; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .email-body { white-space: pre-wrap; margin: 0 0 18px; }
+  .empty { color: var(--muted); }
+  .empty strong { display: block; color: var(--ink); font-family: var(--head); font-size: 1.15rem; margin-bottom: 4px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions button { flex: 1 1 140px; }
+  .error {
+    color: var(--error);
+    background: #fdecea;
+    border: 1px solid #f2b8b3;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 0 0 14px;
+  }
+  .status { color: var(--muted); font-size: 0.9rem; margin-top: 10px; min-height: 1.3em; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MailCraft</h1>
+    <p>Describe your situation, pick the tone, and get a ready-to-send email in seconds.</p>
+  </header>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="form-title">
+      <h2 id="form-title" style="margin:0 0 16px;font-family:var(--head);font-size:1.2rem;">Your email details</h2>
+
+      <div class="field">
+        <label for="situation">What is the email about?</label>
+        <textarea id="situation" maxlength="1000" placeholder="Example: I need two days of leave from 12 to 13 March because of a family function."></textarea>
+      </div>
+
+      <div class="row3">
+        <div class="field">
+          <label for="email_type">Email type</label>
+          <select id="email_type">
+            {% for t in email_types %}<option>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="tone">Tone</label>
+          <select id="tone">
+            {% for t in tones %}<option>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="length">Length</label>
+          <select id="length">
+            {% for t in lengths %}<option {% if t == 'Medium' %}selected{% endif %}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="recipient">Send to <span class="hint">(optional)</span></label>
+          <input id="recipient" type="text" placeholder="Prof. Rao">
+        </div>
+        <div class="field">
+          <label for="sender">Your name <span class="hint">(optional)</span></label>
+          <input id="sender" type="text" placeholder="Anusha Sadu">
+        </div>
+      </div>
+
+      <button id="write" class="primary" type="button">Write email</button>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="result" aria-labelledby="result-title">
+      <div class="envelope">
+        <h2 id="result-title" style="margin:0 0 14px;font-family:var(--head);font-size:1.2rem;">Your email</h2>
+        <div id="error" class="error" role="alert" hidden></div>
+
+        <div id="empty" class="empty">
+          <strong>Nothing written yet</strong>
+          Fill in the details on the left and press Write email. Your draft appears here.
+        </div>
+
+        <div id="output" hidden>
+          <p class="subject-label">Subject</p>
+          <p class="subject" id="subject"></p>
+          <p class="email-body" id="body"></p>
+          <div class="actions">
+            <button id="copy" class="ghost" type="button">Copy email</button>
+            <button id="again" class="ghost" type="button">Write again</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const writeBtn = $("write");
+
+  function showError(message) {
+    $("error").textContent = message;
+    $("error").hidden = !message;
+  }
+
+  async function writeEmail() {
+    showError("");
+    writeBtn.disabled = true;
+    writeBtn.textContent = "Writing...";
+    $("status").textContent = "Writing your email...";
+
+    const payload = {
+      situation: $("situation").value,
+      email_type: $("email_type").value,
+      tone: $("tone").value,
+      length: $("length").value,
+      recipient: $("recipient").value,
+      sender: $("sender").value,
+    };
+
+    try {
+      const res = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showError(data.error || "Something went wrong. Please try again.");
+        $("output").hidden = true;
+        $("empty").hidden = false;
+        $("status").textContent = "";
+        return;
+      }
+      $("subject").textContent = data.subject || "(no subject)";
+      $("body").textContent = data.body;
+      $("empty").hidden = true;
+      $("output").hidden = false;
+      $("status").textContent = "Done. Your email is ready.";
+    } catch (err) {
+      showError("Could not reach the app. Make sure it is still running, then try again.");
+      $("status").textContent = "";
+    } finally {
+      writeBtn.disabled = false;
+      writeBtn.textContent = "Write email";
+    }
+  }
+
+  async function copyEmail() {
+    const text = "Subject: " + $("subject").textContent + "\n\n" + $("body").textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      $("copy").textContent = "Copied";
+    } catch (err) {
+      $("copy").textContent = "Copy failed";
+    }
+    setTimeout(() => { $("copy").textContent = "Copy email"; }, 1800);
+  }
+
+  writeBtn.addEventListener("click", writeEmail);
+  $("again").addEventListener("click", writeEmail);
+  $("copy").addEventListener("click", copyEmail);
+</script>
+</body>
+</html>
